@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { auth } from '../config'; // Firebase auth instance
+import React, { useState, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 
 interface LoginScreenProps {
@@ -8,20 +9,48 @@ interface LoginScreenProps {
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onShowPrivacy }) => {
     const [error, setError] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true); // Start loading to handle redirect check
 
-    const handleGoogleLogin = async () => {
-        if (!auth) {
-            setError("Servizio di autenticazione non disponibile.");
+    // Effect to handle redirect result after Google login on web
+    useEffect(() => {
+        if (Capacitor.isNativePlatform()) {
+            setLoading(false);
             return;
         }
 
+        const auth = getAuth();
+        getRedirectResult(auth)
+            .then((result) => {
+                // If result is not null, onAuthStateChanged in App.tsx will handle it.
+                // We just need to manage the loading state.
+                if (result) {
+                  console.log("[AUTH] Redirect result obtained:", result.user);
+                }
+            })
+            .catch((error) => {
+                console.error("Errore di autenticazione Google (redirect):", error);
+                setError("Si è verificato un errore durante l'accesso con Google.");
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    }, []);
+
+    const handleGoogleLogin = async () => {
         setLoading(true);
         setError(null);
 
         try {
-            await FirebaseAuthentication.signInWithGoogle();
-            // L'observer onAuthStateChanged in App.tsx si occuperà del resto.
+            if (Capacitor.isNativePlatform()) {
+                await FirebaseAuthentication.signInWithGoogle();
+                // The listener in App.tsx will handle success, but we should handle failure here.
+                setLoading(false); // In case of success or cancellation, stop loading.
+            } else {
+                const auth = getAuth();
+                const provider = new GoogleAuthProvider();
+                await signInWithRedirect(auth, provider);
+                // Page will redirect, so no need to setLoading(false) here.
+            }
         } catch (error: any) {
             console.error("Errore di autenticazione Google:", error);
             if (error.code === 'CANCELLED' || (error.message && error.message.includes("cancelled"))) {
@@ -29,7 +58,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onShowPrivacy }) => {
             } else {
                 setError("Si è verificato un errore durante l'accesso con Google.");
             }
-        } finally {
             setLoading(false);
         }
     };

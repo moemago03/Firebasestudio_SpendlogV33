@@ -1,6 +1,6 @@
 import React, { useState, useMemo, lazy, Suspense, useCallback, useEffect } from 'react';
-import type { User } from 'firebase/auth';
-import type { PluginListenerHandle } from '@capacitor/core';
+import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
+import { Capacitor, PluginListenerHandle } from '@capacitor/core';
 import { Trip, Expense, AppView } from './types';
 import { DataProvider, useData } from './context/DataContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -39,41 +39,84 @@ const App: React.FC = () => {
 
     useEffect(() => {
         console.log("[AUTH] App.tsx useEffect triggered");
-        setLoadingAuth(true);
 
-        // Check current user on app start
-        FirebaseAuthentication.getCurrentUser().then(result => {
-            console.log("[AUTH] getCurrentUser successful:", result.user);
-            setUser(result.user as unknown as User | null);
-            setLoadingAuth(false);
-        }).catch((err) => {
-            console.error("[AUTH] getCurrentUser error:", err);
-            setUser(null);
-            setLoadingAuth(false);
-        });
+        if (Capacitor.isNativePlatform()) {
+            // Mobile (Capacitor) Auth Logic
+            let authStateListener: PluginListenerHandle | undefined;
+            let idTokenListener: PluginListenerHandle | undefined;
 
-        // Listen for authentication state changes
-        let listenerHandle: PluginListenerHandle;
-        const registerListener = async () => {
-            listenerHandle = await FirebaseAuthentication.addAuthStateChangeListener((change) => {
-                console.log("[AUTH] authStateChange event received:", change.user);
-                setUser(change.user as unknown as User | null);
+            const setupNativeAuth = async () => {
+                console.log("[AUTH] Setting up native auth listeners...");
+                
+                // 1. Register listeners FIRST to ensure no events are missed during startup.
+                authStateListener = await FirebaseAuthentication.addAuthStateChangeListener((change) => {
+                    console.log("[AUTH] Native authStateChange event received:", change.user);
+                    setUser(change.user as unknown as User | null);
+                });
+
+                idTokenListener = await FirebaseAuthentication.addIdTokenChangeListener((result) => {
+                    console.log("[AUTH] Native idTokenChange event received.", result.user ? 'Got user.' : 'No user.');
+                    // This is mainly for token refreshes. If the user object changes, we update the state.
+                    if (result.user && (!user || user.uid !== result.user.uid)) {
+                         setUser(result.user as unknown as User | null);
+                    }
+                });
+
+                // 2. THEN, get the current user state to handle the initial load.
+                try {
+                    console.log("[AUTH] Checking for current user...");
+                    const result = await FirebaseAuthentication.getCurrentUser();
+                    if (result.user) {
+                        console.log("[AUTH] getCurrentUser successful:", result.user);
+                        setUser(result.user as unknown as User | null);
+                    } else {
+                        console.log("[AUTH] getCurrentUser returned no user.");
+                        setUser(null);
+                    }
+                } catch (err) {
+                    console.error("[AUTH] getCurrentUser error:", err);
+                    setUser(null);
+                } finally {
+                    // 3. Auth initialization is complete. We can hide the loading screen.
+                    console.log("[AUTH] Auth loading finished.");
+                    setLoadingAuth(false);
+                }
+            };
+
+            setupNativeAuth();
+
+            // 4. Cleanup function to remove listeners when the component unmounts.
+            return () => {
+                console.log("[AUTH] Cleaning up native auth listeners.");
+                authStateListener?.remove();
+                idTokenListener?.remove();
+            };
+
+        } else {
+            // Web Auth Logic (already correct)
+            console.log("[AUTH] Setting up web auth listener...");
+            const auth = getAuth();
+            const unsubscribe = onAuthStateChanged(auth, (user) => {
+                console.log("[AUTH] Web onAuthStateChanged event received:", user);
+                setUser(user);
+                setLoadingAuth(false);
             });
-        };
-        registerListener();
 
-        // Clean up
-        return () => {
-            if (listenerHandle) {
-                console.log("[AUTH] Cleaning up auth listener.");
-                listenerHandle.remove();
-            }
-        };
-    }, []);
+            return () => {
+                console.log("[AUTH] Cleaning up web auth listener.");
+                unsubscribe();
+            };
+        }
+    }, []); // Empty dependency array ensures this runs only once on mount.
 
     const handleLogout = useCallback(async () => {
         console.log("[AUTH] handleLogout called");
-        await FirebaseAuthentication.signOut();
+        setUser(null); // Explicitly set user to null for immediate UI feedback
+        if (Capacitor.isNativePlatform()) {
+            await FirebaseAuthentication.signOut();
+        } else {
+            await getAuth().signOut();
+        }
     }, []);
 
     if (loadingAuth) {
