@@ -1,5 +1,6 @@
 import React, { useState, useMemo, lazy, Suspense, useCallback, useEffect } from 'react';
 import type { User } from 'firebase/auth';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { Trip, Expense, AppView } from './types';
 import { DataProvider, useData } from './context/DataContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -18,12 +19,10 @@ import FloatingActionButtons from './components/layout/FloatingActionButtons';
 import DebugMenu from './components/DebugMenu';
 import PrivacyPolicy from './PrivacyPolicy';
 
-// Eagerly load main components
-import Dashboard from './components/Dashboard';
-import ProfileScreen from './components/ProfileScreen';
-import ItineraryView from './components/itinerary/ItineraryView';
-
-// Lazy load other components
+// Lazy load components
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const ProfileScreen = lazy(() => import('./components/ProfileScreen'));
+const ItineraryView = lazy(() => import('./components/itinerary/ItineraryView'));
 const ExpenseForm = lazy(() => import('./components/ExpenseForm'));
 const AIPanel = lazy(() => import('./components/AIPanel'));
 const ReceiptScanner = lazy(() => import('./components/ReceiptScanner'));
@@ -37,25 +36,14 @@ const App: React.FC = () => {
     const [showingPrivacy, setShowingPrivacy] = useState(false);
 
     useEffect(() => {
-        setLoadingAuth(true);
-        // Check current user on app start
-        FirebaseAuthentication.getCurrentUser().then(result => {
-            setUser(result.user as unknown as User | null);
-            setLoadingAuth(false);
-        }).catch(() => {
-            setUser(null);
+        const auth = getAuth();
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            setUser(user);
             setLoadingAuth(false);
         });
 
-        // Listen for authentication state changes
-        const listener = FirebaseAuthentication.addListener('authStateChange', (change) => {
-            setUser(change.user as unknown as User | null);
-        });
-
-        // Clean up
-        return () => {
-            listener.remove();
-        };
+        // Clean up subscription on unmount
+        return () => unsubscribe();
     }, []);
 
     const handleLogout = useCallback(async () => {
@@ -152,16 +140,16 @@ const AuthenticatedApp: React.FC<{ user: User; onLogout: () => void }> = ({ user
         }
         
         const mainViews: { [key in AppView]?: React.ReactNode } = {
-            'summary': activeTrip && <Dashboard activeTripId={activeTrip.id} setEditingExpense={setEditingExpense} onNavigate={setCurrentView} />,
-            'itinerary': activeTrip && <ItineraryView trip={activeTrip} onAddExpense={setEditingExpense} />,
+            'summary': activeTrip && <Suspense fallback={<LoadingScreen />}><Dashboard activeTripId={activeTrip.id} setEditingExpense={setEditingExpense} onNavigate={setCurrentView} /></Suspense>,
+            'itinerary': activeTrip && <Suspense fallback={<LoadingScreen />}><ItineraryView trip={activeTrip} onAddExpense={setEditingExpense} /></Suspense>,
             'plan': activeTrip && <Suspense fallback={<LoadingScreen />}><PlanView trip={activeTrip} onNavigate={setCurrentView} /></Suspense>,
             'stats': activeTrip && <Suspense fallback={<LoadingScreen />}><Statistics trip={activeTrip} expenses={activeTrip.expenses || []} /></Suspense>,
             'group': activeTrip && <Suspense fallback={<LoadingScreen />}><GroupView trip={activeTrip} /></Suspense>,
-            'profile': <ProfileScreen trips={data?.trips || []} activeTripId={activeTripId} onSetDefaultTrip={setDefaultTrip} onLogout={onLogout} />
+            'profile': <Suspense fallback={<LoadingScreen />}><ProfileScreen trips={data?.trips || []} activeTripId={activeTripId} onSetDefaultTrip={setDefaultTrip} onLogout={onLogout} /></Suspense>
         };
         
         if (!activeTrip && currentView !== 'profile') {
-             return <ProfileScreen trips={[]} activeTripId={null} onSetDefaultTrip={setDefaultTrip} onLogout={onLogout} />;
+             return <Suspense fallback={<LoadingScreen />}><ProfileScreen trips={[]} activeTripId={null} onSetDefaultTrip={setDefaultTrip} onLogout={onLogout} /></Suspense>;
         }
 
         return mainViews[currentView] || <div>View not found</div>;
