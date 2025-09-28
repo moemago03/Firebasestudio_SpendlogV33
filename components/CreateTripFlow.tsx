@@ -208,7 +208,7 @@ const CreateTripFlow: React.FC<CreateTripFlowProps> = ({ onClose }) => {
             </main>
 
             <footer className="p-4 border-t border-surface-variant">
-                <button onClick={handleCreateTrip} style={{backgroundColor: '#10B981', color: 'white'}} className="w-full font-bold py-4 rounded-2xl shadow-md hover:shadow-lg transition-shadow">
+                <button onClick={handleCreateTrip} className="w-full font-bold py-4 rounded-2xl shadow-md hover:shadow-lg transition-shadow bg-green-500 text-white">
                     Crea Viaggio
                 </button>
             </footer>
