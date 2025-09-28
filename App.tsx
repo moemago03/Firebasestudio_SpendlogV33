@@ -37,38 +37,49 @@ const App: React.FC = () => {
     const [showingPrivacy, setShowingPrivacy] = useState(false);
 
     useEffect(() => {
+        console.log("[AUTH] App.tsx useEffect triggered");
         setLoadingAuth(true);
+
         // Check current user on app start
         FirebaseAuthentication.getCurrentUser().then(result => {
+            console.log("[AUTH] getCurrentUser successful:", result.user);
             setUser(result.user as unknown as User | null);
             setLoadingAuth(false);
-        }).catch(() => {
+        }).catch((err) => {
+            console.error("[AUTH] getCurrentUser error:", err);
             setUser(null);
             setLoadingAuth(false);
         });
 
         // Listen for authentication state changes
         const listener = FirebaseAuthentication.addListener('authStateChange', (change) => {
+            console.log("[AUTH] authStateChange event received:", change.user);
             setUser(change.user as unknown as User | null);
         });
 
         // Clean up
         return () => {
+            console.log("[AUTH] Cleaning up auth listener.");
             listener.remove();
         };
     }, []);
 
     const handleLogout = useCallback(async () => {
+        console.log("[AUTH] handleLogout called");
         await FirebaseAuthentication.signOut();
     }, []);
 
     if (loadingAuth) {
+        console.log("[AUTH] Render: loadingAuth is true");
         return <LoadingScreen />;
     }
 
     if (showingPrivacy) {
+        console.log("[AUTH] Render: showing privacy policy");
         return <PrivacyPolicy onBack={() => setShowingPrivacy(false)} />;
     }
+    
+    console.log(`[AUTH] Render: user is ${user ? 'logged in' : 'logged out'}`);
 
     return (
         <ThemeProvider>
