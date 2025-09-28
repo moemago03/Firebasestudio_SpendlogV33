@@ -10,6 +10,10 @@ import {
   IonInput,
   IonItem,
   IonLoading,
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardContent,
 } from '@ionic/react';
 import { useHistory } from 'react-router-dom';
 import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
@@ -20,38 +24,45 @@ const LoginScreen: React.FC<{
 }> = ({ onShowPrivacy }) => {
   const history = useHistory();
   const [busy, setBusy] = useState(false);
+  // --- NUOVO: Stato per il debug on-screen ---
+  const [debugMessages, setDebugMessages] = useState<string[]>([]);
+
+  // --- NUOVO: Funzione per loggare sia su console che su schermo ---
+  const log = (message: string) => {
+    console.log(message);
+    setDebugMessages(prev => [message, ...prev]); // Aggiunge il messaggio in cima alla lista
+  };
 
   const handleGoogleSignIn = async () => {
-    console.log('[DEBUG] 1/11: handleGoogleSignIn - Funzione avviata.');
+    setDebugMessages([]); // Pulisce i log precedenti all'inizio
+    log('[DEBUG] 1/11: handleGoogleSignIn - Funzione avviata.');
 
     try {
-      console.log('[DEBUG] 2/11: handleGoogleSignIn - Entrato nel blocco try.');
+      log('[DEBUG] 2/11: handleGoogleSignIn - Entrato nel blocco try.');
       
-      console.log('[DEBUG] 3/11: handleGoogleSignIn - Chiamata a setBusy(true).');
+      log('[DEBUG] 3/11: handleGoogleSignIn - Chiamata a setBusy(true).');
       setBusy(true);
-      console.log('[DEBUG] 4/11: handleGoogleSignIn - setBusy(true) completato. La UI dovrebbe mostrare il caricamento.');
+      log('[DEBUG] 4/11: handleGoogleSignIn - setBusy(true) completato.');
 
-      console.log('[DEBUG] 5/11: handleGoogleSignIn - Inizio chiamata a FirebaseAuthentication.signInWithGoogle()...');
+      log('[DEBUG] 5/11: handleGoogleSignIn - Inizio chiamata a FirebaseAuthentication.signInWithGoogle()...');
       const result = await FirebaseAuthentication.signInWithGoogle();
-      console.log('[DEBUG] 6/11: handleGoogleSignIn - Chiamata a signInWithGoogle() RIUSCITA!');
-      console.log('[DEBUG] Dati utente ricevuti:', JSON.stringify(result, null, 2));
+      log('[DEBUG] 6/11: handleGoogleSignIn - Chiamata a signInWithGoogle() RIUSCITA!');
+      log(`[DEBUG] Dati utente: ${JSON.stringify(result, null, 2)}`);
 
-      console.log('[DEBUG] 7/11: handleGoogleSignIn - Mostro il toast di successo.');
+      log('[DEBUG] 7/11: handleGoogleSignIn - Mostro il toast di successo.');
       toast('Login avvenuto con successo!');
 
-      console.log('[DEBUG] 8/11: handleGoogleSignIn - Reindirizzo alla /home.');
+      log('[DEBUG] 8/11: handleGoogleSignIn - Reindirizzo alla /home.');
       history.push('/home');
 
     } catch (error: any) {
-      console.error('-----------------[ERRORE RILEVATO]-----------------');
-      console.error('[DEBUG] 9/11: handleGoogleSignIn - Entrato nel blocco catch. Si è verificato un errore.');
-      console.error('[DEBUG] OGGETTO ERRORE COMPLETO:', error);
+      log('-----------------[ERRORE RILEVATO]-----------------');
+      log('[DEBUG] 9/11: handleGoogleSignIn - Entrato nel blocco catch.');
+      log(`[DEBUG] OGGETTO ERRORE COMPLETO: ${JSON.stringify(error, null, 2)}`);
       
-      // Tentativo di estrarre più informazioni possibili dall'oggetto errore
       if (error) {
-        console.error('[DEBUG] Codice Errore:', error.code);
-        console.error('[DEBUG] Messaggio Errore:', error.message);
-        console.error('[DEBUG] Stack Trace:', error.stack);
+        log(`[DEBUG] Codice Errore: ${error.code}`);
+        log(`[DEBUG] Messaggio Errore: ${error.message}`);
       }
       
       let userMessage = 'Errore imprevisto durante il login.';
@@ -67,16 +78,16 @@ const LoginScreen: React.FC<{
         }
       }
       
-      console.error('[DEBUG] Messaggio per l\'utente:', userMessage);
+      log(`[DEBUG] Messaggio per l'utente: ${userMessage}`);
       toast(userMessage);
-      console.error('----------------------------------------------------');
+      log('----------------------------------------------------');
 
     } finally {
-      console.log('[DEBUG] 10/11: handleGoogleSignIn - Entrato nel blocco finally.');
+      log('[DEBUG] 10/11: handleGoogleSignIn - Entrato nel blocco finally.');
       
-      console.log('[DEBUG] 11/11: handleGoogleSignIn - Chiamata a setBusy(false).');
+      log('[DEBUG] 11/11: handleGoogleSignIn - Chiamata a setBusy(false).');
       setBusy(false);
-      console.log('[DEBUG] Operazione di login (handleGoogleSignIn) terminata.');
+      log('[DEBUG] Operazione di login (handleGoogleSignIn) terminata.');
     }
   };
 
@@ -109,6 +120,21 @@ const LoginScreen: React.FC<{
             </a>
           </IonCol>
         </IonRow>
+        
+        {/* --- NUOVO: Area di Debug On-Screen --- */}
+        {debugMessages.length > 0 && (
+          <IonCard className="ion-margin-top">
+            <IonCardHeader>
+              <IonCardTitle>Log di Debug</IonCardTitle>
+            </IonCardHeader>
+            <IonCardContent>
+              <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: '200px', overflowY: 'auto' }}>
+                {debugMessages.join('\n')}
+              </pre>
+            </IonCardContent>
+          </IonCard>
+        )}
+
       </IonContent>
     </IonPage>
   );
