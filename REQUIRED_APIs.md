@@ -26,8 +26,8 @@ Questo file documenta le API esterne necessarie per il funzionamento completo de
 - **Endpoint:** `api.open-meteo.com`.
 - **Stato attuale:** **Attiva**. Utilizza l'API di Open-Meteo, che non richiede chiave per uso base, per recuperare i dati meteorologici.
 
-## 4. API Tassi di Cambio (Es. exchangerate-api.com)
+## 4. API Tassi di Cambio (open.er-api.com)
 
 - **Scopo:** Fornire tassi di cambio valutari in tempo reale per il convertitore e per i calcoli del budget.
-- **Endpoint:** Da definire (es. `v6.exchangerate-api.com`).
-- **Stato attuale:** **Simulata**. I tassi di cambio sono attualmente basati su valori statici definiti in `constants.ts` e gestiti tramite `CurrencyContext.tsx`.
+- **Endpoint:** `https://open.er-api.com/v6/latest/EUR`.
+- **Stato attuale:** **Attiva**. Utilizza l'API gratuita di `open.er-api.com` che non richiede chiave di autenticazione.

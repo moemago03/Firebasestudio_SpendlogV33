@@ -1,5 +1,4 @@
 import React, { createContext, useState, useEffect, useCallback, ReactNode, useContext } from 'react';
-import { MOCK_EXCHANGE_RATES } from '../constants';
 import { useNotification } from './NotificationContext';
 
 interface ExchangeRates {
@@ -20,7 +19,7 @@ const LOCAL_STORAGE_KEY = 'vsc_exchange_rates';
 const API_URL = 'https://open.er-api.com/v6/latest/EUR';
 
 export const CurrencyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [rates, setRates] = useState<{ [key: string]: number }>(MOCK_EXCHANGE_RATES);
+    const [rates, setRates] = useState<{ [key: string]: number }>({});
     const [lastUpdated, setLastUpdated] = useState<string | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
     const { addNotification } = useNotification();
