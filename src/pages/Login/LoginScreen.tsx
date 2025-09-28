@@ -26,16 +26,35 @@ const LoginScreen: React.FC<{
   const [busy, setBusy] = useState(false);
   const [debugMessages, setDebugMessages] = useState<string[]>([]);
   
-  // Stato per il login con Email/Password
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // --- SOLUZIONE: Aggiungiamo un listener per lo stato di autenticazione ---
+  // --- SOLUZIONE con DOPPIA SICURA: Controlla utente corrente E ascolta cambiamenti ---
   useEffect(() => {
+    const log = (message: string) => {
+        console.log(message);
+        // Non aggiorniamo più lo stato di debug qui per evitare loop
+    };
+
+    // 1. CONTROLLO ATTIVO: Appena il componente si monta, controlliamo se c'è già un utente.
+    const checkCurrentUser = async () => {
+      try {
+        const result = await FirebaseAuthentication.getCurrentUser();
+        if (result.user) {
+          log(`[CHECK] Utente ${result.user.uid} già loggato. Reindirizzo...`);
+          history.push('/home');
+        }
+      } catch (error) {
+        log('[CHECK] Nessun utente loggato all\'avvio. Normale.');
+      }
+    };
+
+    checkCurrentUser();
+
+    // 2. ASCOLTO PASSIVO: Restiamo in ascolto per futuri cambi di stato (login effettuato mentre siamo sulla pagina)
     const listener = FirebaseAuthentication.addListener('authStateChange', (change: { user: User | null }) => {
       if (change.user) {
-        log('[AUTH_LISTENER] Utente autenticato, reindirizzo alla home...');
-        toast('Login avvenuto con successo!');
+        log(`[LISTENER] Cambio di stato, utente ${change.user.uid} rilevato. Reindirizzo...`);
         history.push('/home');
       } 
     });
@@ -46,40 +65,39 @@ const LoginScreen: React.FC<{
     };
   }, [history]);
 
-  const log = (message: string) => {
+  const logAndDebug = (message: string) => {
     console.log(message);
     setDebugMessages(prev => [message, ...prev]);
   };
 
   const handleGoogleSignIn = async () => {
     setDebugMessages([]);
-    log('Avvio login con Google...');
+    logAndDebug('Avvio login con Google...');
     setBusy(true);
     try {
       await FirebaseAuthentication.signInWithGoogle();
-      // La navigazione ora è gestita dal listener useEffect
+      // La navigazione è gestita dal listener useEffect
     } catch (error: any) {
-      log(`ERRORE Google Sign-In: ${error.message || JSON.stringify(error)}`);
+      logAndDebug(`ERRORE Google Sign-In: ${error.message || JSON.stringify(error)}`);
       toast(error.message || 'Errore durante il login con Google');
     } finally {
       setBusy(false);
     }
   };
 
-  // --- NUOVO: Funzione per il login con Email e Password ---
   const handleEmailPasswordSignIn = async () => {
     if (!email || !password) {
       toast('Per favore, inserisci email e password.');
       return;
     }
     setDebugMessages([]);
-    log('Avvio login con Email/Password...');
+    logAndDebug('Avvio login con Email/Password...');
     setBusy(true);
     try {
       await FirebaseAuthentication.signInWithEmailAndPassword({ email, password });
       // La navigazione è gestita dal listener useEffect
     } catch (error: any) {
-      log(`ERRORE Email/Pwd: ${error.code} - ${error.message}`);
+      logAndDebug(`ERRORE Email/Pwd: ${error.code} - ${error.message}`);
       let userMessage = 'Errore durante il login.';
       if (error.code) {
         switch(error.code) {
@@ -114,7 +132,6 @@ const LoginScreen: React.FC<{
           </IonCol>
         </IonRow>
 
-        {/* --- CAMPI EMAIL/PASSWORD --- */}
         <IonItem className="ion-margin-top">
           <IonLabel position="floating">Email</IonLabel>
           <IonInput type="email" value={email} onIonInput={e => setEmail(e.detail.value!)} />
@@ -144,7 +161,7 @@ const LoginScreen: React.FC<{
               expand="block"
               onClick={handleGoogleSignIn}
               disabled={busy}
-              color="medium" // Colore diverso per distinguerlo
+              color="medium"
             >
               Accedi con Google
             </IonButton>
