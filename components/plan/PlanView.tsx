@@ -3,7 +3,7 @@ import { Trip, Stage, AppView, PlanItem } from '../../types';
 import { useData } from '../../context/DataContext';
 import PlanMapView from './PlanMapView';
 import { getTripDurationDays, dateToISOString } from '../../utils/dateUtils';
-import { STAGE_COLORS } from '../../constants';
+import { STAGE_COLORS } from '../../utils/constants';
 import { useNotification } from '../../context/NotificationContext';
 import { useIonAlert } from '@ionic/react';
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Trip, Stage } from '../../types';
 import { useData } from '../../context/DataContext';
-import { COUNTRY_TO_CODE } from '../../constants';
+import { COUNTRY_TO_CODE } from '../../utils/constants';
 
 interface PopularDestinationsData {
     [countryCode: string]: {

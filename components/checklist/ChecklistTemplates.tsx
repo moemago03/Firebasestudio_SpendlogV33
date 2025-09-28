@@ -1,6 +1,6 @@
 import React from 'react';
 import { useData } from '../../context/DataContext';
-import { CHECKLIST_TEMPLATES } from '../../constants';
+import { CHECKLIST_TEMPLATES } from '../../utils/constants';
 
 interface ChecklistTemplatesProps {
     tripId: string;

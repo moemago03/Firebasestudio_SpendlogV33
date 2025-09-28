@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { VIAGGIARE_SICURI_COUNTRY_SLUGS, TRAVEL_INFO_DATA } from '../../constants';
+import { VIAGGIARE_SICURI_COUNTRY_SLUGS, TRAVEL_INFO_DATA } from '../../utils/constants';
 
 interface TravelInfoProps {
     countries: string[];

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Trip } from '../../types';
-import { TRAVEL_INFO_DATA } from '../../constants';
+import { TRAVEL_INFO_DATA } from '../../utils/constants';
 
 interface SafetyAlertWidgetProps {
     trip: Trip;

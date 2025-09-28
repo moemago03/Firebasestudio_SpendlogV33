@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback, ReactNode, useContext } from 'react';
 import { UserData, Trip, Expense, Category, Event, Document, ChecklistItem, Stage, PlanItem, GroupMessage, AccommodationFilters } from '../types';
-import { DEFAULT_CATEGORIES, ADJUSTMENT_CATEGORY } from '../constants';
+import { DEFAULT_CATEGORIES, ADJUSTMENT_CATEGORY } from '../utils/constants';
 import { useNotification } from './NotificationContext';
 import { db } from '../config';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';

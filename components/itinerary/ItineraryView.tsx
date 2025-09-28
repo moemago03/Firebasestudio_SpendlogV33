@@ -13,7 +13,7 @@ import WeatherDebugWidget from './WeatherDebugWidget'; // Import the new debug w
 import { useLocation } from '../../context/LocationContext';
 import { geocodeLocation } from '../../services/mapService';
 import { findStageForDate } from '../../utils/tripUtils';
-import { STAGE_COLORS } from '../../constants';
+import { STAGE_COLORS } from '../../utils/constants';
 
 const EventForm = lazy(() => import('./EventForm'));
 const Checklist = lazy(() => import('../Checklist'));

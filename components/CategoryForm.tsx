@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Category } from '../types';
-import { CATEGORY_COLORS, CATEGORY_ICONS } from '../constants';
+import { CATEGORY_COLORS, CATEGORY_ICONS } from '../utils/constants';
 
 interface CategoryFormProps {
     category?: Category;

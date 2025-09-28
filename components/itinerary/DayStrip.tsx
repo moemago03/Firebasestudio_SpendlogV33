@@ -6,7 +6,7 @@ import { Trip } from '../../types';
 import { getDaysArray, dateToISOString } from '../../utils/dateUtils';
 import { WeatherInfo } from '../../utils/weatherUtils';
 import { findStageForDate } from '../../utils/tripUtils';
-import { STAGE_COLORS } from '../../constants';
+import { STAGE_COLORS } from '../../utils/constants';
 
 interface DayStripProps {
     trip: Trip;

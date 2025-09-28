@@ -1,105 +1,41 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Trip } from '../../types';
-import { useCurrencyConverter } from '../../hooks/useCurrencyConverter';
-import { useItinerary } from '../../context/ItineraryContext';
-import { ADJUSTMENT_CATEGORY } from '../../constants';
+import { ADJUSTMENT_CATEGORY } from '../../utils/constants';
 
-const BudgetProgress: React.FC<{ trip: Trip }> = ({ trip }) => {
-    const { convert, formatCurrency } = useCurrencyConverter();
-    const { getEventsByTrip } = useItinerary();
+interface BudgetProgressProps {
+    trip: Trip;
+}
 
-    const {
-        totalSpent,
-        totalPlanned,
-        freeToSpend,
-        spentPercentage,
-        plannedPercentage,
-    } = useMemo(() => {
-        const spent = (trip.expenses || [])
-            .filter(exp => exp.category !== ADJUSTMENT_CATEGORY)
-            .reduce((sum, exp) => {
-            // Le entrate sono negative, quindi sommarle le sottrae correttamente
-            return sum + convert(exp.amount, exp.currency, trip.mainCurrency);
-        }, 0);
+const BudgetProgress: React.FC<BudgetProgressProps> = ({ trip }) => {
+    if (!trip.budget) return null;
 
-        const allEvents = getEventsByTrip(trip.id);
-        const planned = allEvents.reduce((sum, event) => {
-            if (event.estimatedCost?.amount && event.estimatedCost.amount > 0) {
-                return sum + convert(event.estimatedCost.amount, event.estimatedCost.currency, trip.mainCurrency);
-            }
-            return sum;
-        }, 0);
-
-        const available = trip.totalBudget - spent - planned;
+    const totalSpent = (trip.expenses || [])
+        .filter(exp => exp.category !== ADJUSTMENT_CATEGORY)
+        .reduce((sum, exp) => sum + exp.amount, 0);
         
-        const sPercentage = trip.totalBudget > 0 ? (spent / trip.totalBudget) * 100 : 0;
-        const pPercentage = trip.totalBudget > 0 ? (planned / trip.totalBudget) * 100 : 0;
-        
-        return {
-            totalSpent: spent,
-            totalPlanned: planned,
-            freeToSpend: available,
-            spentPercentage: sPercentage,
-            plannedPercentage: pPercentage,
-        };
-    }, [trip, getEventsByTrip, convert]);
+    const budgetPercentage = Math.min((totalSpent / trip.budget) * 100, 100);
+
+    const getProgressBarColor = () => {
+        if (budgetPercentage > 90) return 'bg-error';
+        if (budgetPercentage > 75) return 'bg-warning';
+        return 'bg-primary';
+    };
 
     return (
-        <div className="bg-surface p-6 rounded-3xl shadow-lg">
-            <div className="flex justify-between items-center mb-1">
-                <p className="font-semibold text-on-surface">Budget Disponibile</p>
-                <p className="text-xl font-bold text-on-surface">
-                    {formatCurrency(freeToSpend, trip.mainCurrency)}
+        <div className="my-4 p-4 bg-surface-variant rounded-lg shadow">
+            <div className="flex justify-between items-center mb-2">
+                <h3 className="font-semibold text-on-surface-variant">Budget</h3>
+                <p className="text-sm font-medium text-on-surface-variant">
+                    <span className="font-bold">{totalSpent.toFixed(2)}</span> / {trip.budget.toFixed(2)} {trip.currency}
                 </p>
             </div>
-             <p className="text-xs text-on-surface-variant mb-3">
-               Su {formatCurrency(trip.totalBudget, trip.mainCurrency)} totali
-            </p>
-
-            {/* Stacked Progress Bar */}
-            <div className="w-full bg-surface-variant rounded-full h-3 flex overflow-hidden">
-                <div
-                    className="transition-all duration-500"
-                    style={{ 
-                        width: `${Math.min(spentPercentage, 100)}%`,
-                        backgroundColor: trip.color || 'var(--color-primary)' 
-                    }}
-                    title={`Speso: ${formatCurrency(totalSpent, trip.mainCurrency)}`}
-                />
-                <div
-                    className="transition-all duration-500 opacity-60"
-                    style={{ 
-                        width: `${Math.min(plannedPercentage, 100 - spentPercentage)}%`,
-                        backgroundColor: trip.color || 'var(--color-primary)' 
-                    }}
-                    title={`Pianificato: ${formatCurrency(totalPlanned, trip.mainCurrency)}`}
-                />
+            <div className="w-full bg-surface rounded-full h-2.5">
+                <div 
+                    className={`h-2.5 rounded-full ${getProgressBarColor()}`}
+                    style={{ width: `${budgetPercentage}%` }}
+                ></div>
             </div>
-
-            {/* Legend */}
-            <div className="mt-3 grid grid-cols-3 gap-4 text-xs">
-                <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: trip.color || 'var(--color-primary)' }}></div>
-                    <div>
-                        <p className="text-on-surface-variant">Speso</p>
-                        <p className="font-semibold text-on-surface">{formatCurrency(totalSpent, trip.mainCurrency)}</p>
-                    </div>
-                </div>
-                 <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full opacity-60" style={{ backgroundColor: trip.color || 'var(--color-primary)' }}></div>
-                     <div>
-                        <p className="text-on-surface-variant">Pianificato</p>
-                        <p className="font-semibold text-on-surface">{formatCurrency(totalPlanned, trip.mainCurrency)}</p>
-                    </div>
-                </div>
-                 <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-surface-variant border-2 border-outline/30"></div>
-                     <div>
-                        <p className="text-on-surface-variant">Disponibile</p>
-                        <p className="font-semibold text-on-surface">{formatCurrency(freeToSpend, trip.mainCurrency)}</p>
-                    </div>
-                </div>
-            </div>
+             {budgetPercentage >= 100 && <p className="text-center text-error text-sm mt-2">Budget superato!</p>}
         </div>
     );
 };

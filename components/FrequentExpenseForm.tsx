@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Trip, FrequentExpense } from '../types';
 import { useData } from '../context/DataContext';
-import { CATEGORY_ICONS } from '../constants';
+import { CATEGORY_ICONS } from '../utils/constants';
 
 interface FrequentExpenseFormProps {
     expense?: FrequentExpense;

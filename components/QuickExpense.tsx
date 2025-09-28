@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Trip } from '../types';
 import { useData } from '../context/DataContext';
-import { CURRENCY_TO_COUNTRY } from '../constants';
+import { CURRENCY_TO_COUNTRY } from '../utils/constants';
 import { useNotification } from '../context/NotificationContext';
 
 interface QuickExpenseProps {
@@ -15,11 +15,6 @@ const QuickExpense: React.FC<QuickExpenseProps> = ({ trip }) => {
     const [isLoading, setIsLoading] = useState(false);
 
     const handleAddExpense = async () => {
-        // RIABILITARE API GEMINI: Rimuovere le prossime 3 righe per riattivare la funzionalità.
-        addNotification("Funzionalità AI disabilitata in ambiente di sviluppo.", 'info');
-        setIsLoading(false);
-        return;
-
         if (!prompt.trim()) return;
         
         setIsLoading(true);
@@ -28,8 +23,7 @@ const QuickExpense: React.FC<QuickExpenseProps> = ({ trip }) => {
             // Dynamically import the module only when needed to prevent load-time errors
             const { GoogleGenAI, Type } = await import('@google/genai');
             
-            // FIX: The API key is sourced from an environment variable per guidelines.
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
             const availableCategories = data.categories.map(c => c.name);
 

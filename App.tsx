@@ -1,5 +1,6 @@
 import React, { useState, useMemo, lazy, Suspense, useCallback, useEffect } from 'react';
 import type { User } from 'firebase/auth';
+import type { PluginListenerHandle } from '@capacitor/core';
 import { Trip, Expense, AppView } from './types';
 import { DataProvider, useData } from './context/DataContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -8,7 +9,7 @@ import { CurrencyProvider } from './context/CurrencyContext';
 import { ItineraryProvider } from './context/ItineraryContext';
 import { LocationProvider } from './context/LocationContext';
 import { getContrastColor, hexToRgba } from './utils/colorUtils';
-import { FirebaseAuthentication } from '@capawesome/capacitor-firebase-authentication';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 
 import LoginScreen from './components/LoginScreen';
 import LoadingScreen from './components/LoadingScreen';
@@ -52,15 +53,21 @@ const App: React.FC = () => {
         });
 
         // Listen for authentication state changes
-        const listener = FirebaseAuthentication.addListener('authStateChange', (change) => {
-            console.log("[AUTH] authStateChange event received:", change.user);
-            setUser(change.user as unknown as User | null);
-        });
+        let listenerHandle: PluginListenerHandle;
+        const registerListener = async () => {
+            listenerHandle = await FirebaseAuthentication.addAuthStateChangeListener((change) => {
+                console.log("[AUTH] authStateChange event received:", change.user);
+                setUser(change.user as unknown as User | null);
+            });
+        };
+        registerListener();
 
         // Clean up
         return () => {
-            console.log("[AUTH] Cleaning up auth listener.");
-            listener.remove();
+            if (listenerHandle) {
+                console.log("[AUTH] Cleaning up auth listener.");
+                listenerHandle.remove();
+            }
         };
     }, []);
 

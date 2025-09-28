@@ -3,7 +3,7 @@ import { Trip } from '../../types';
 import { useItinerary } from '../../context/ItineraryContext';
 import { useNotification } from '../../context/NotificationContext';
 import { getDaysArray } from '../../utils/dateUtils';
-import { ALL_CURRENCIES } from '../../constants';
+import { ALL_CURRENCIES } from '../../utils/constants';
 
 interface AddToItineraryModalProps {
     trip: Trip;

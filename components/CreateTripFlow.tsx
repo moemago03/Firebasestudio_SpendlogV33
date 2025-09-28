@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import { useData } from '../context/DataContext';
 import { Trip, Stage } from '../../types';
-import { TRIP_CARD_COLORS } from '../constants';
+import { TRIP_CARD_COLORS } from '../utils/constants';
 import { useNotification } from '../context/NotificationContext';
 import SelectCountriesScreen from './SelectCountriesScreen';
 

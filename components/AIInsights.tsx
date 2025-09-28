@@ -53,7 +53,7 @@ const AIInsights: React.FC<AIInsightsProps> = ({ expenses, trip }) => {
         try {
             const { GoogleGenAI, Type } = await import('@google/genai');
             // FIX: The API key is sourced from an environment variable per guidelines.
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
             const response = await ai.models.generateContent({
                 model: "gemini-2.5-flash",
