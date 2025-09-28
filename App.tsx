@@ -1,6 +1,5 @@
 import React, { useState, useMemo, lazy, Suspense, useCallback, useEffect } from 'react';
-import { User, onAuthStateChanged } from 'firebase/auth';
-import { auth } from './config';
+import type { User } from 'firebase/auth';
 import { Trip, Expense, AppView } from './types';
 import { DataProvider, useData } from './context/DataContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -9,7 +8,7 @@ import { CurrencyProvider } from './context/CurrencyContext';
 import { ItineraryProvider } from './context/ItineraryContext';
 import { LocationProvider } from './context/LocationContext';
 import { getContrastColor, hexToRgba } from './utils/colorUtils';
-import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
+import { FirebaseAuthentication } from '@capawesome/capacitor-firebase-authentication';
 
 import LoginScreen from './components/LoginScreen';
 import LoadingScreen from './components/LoadingScreen';
@@ -38,15 +37,25 @@ const App: React.FC = () => {
     const [showingPrivacy, setShowingPrivacy] = useState(false);
 
     useEffect(() => {
-        if (!auth) {
+        setLoadingAuth(true);
+        // Check current user on app start
+        FirebaseAuthentication.getCurrentUser().then(result => {
+            setUser(result.user as unknown as User | null);
             setLoadingAuth(false);
-            return;
-        }
-        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-            setUser(firebaseUser);
+        }).catch(() => {
+            setUser(null);
             setLoadingAuth(false);
         });
-        return () => unsubscribe();
+
+        // Listen for authentication state changes
+        const listener = FirebaseAuthentication.addListener('authStateChange', (change) => {
+            setUser(change.user as unknown as User | null);
+        });
+
+        // Clean up
+        return () => {
+            listener.remove();
+        };
     }, []);
 
     const handleLogout = useCallback(async () => {
