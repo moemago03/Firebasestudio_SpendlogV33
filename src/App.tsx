@@ -1,134 +1,59 @@
-import React, { useState, useMemo, lazy, Suspense, useCallback, useEffect, useRef } from 'react';
-import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
-import { Capacitor, PluginListenerHandle } from '@capacitor/core';
-import { Trip, Expense, AppView } from './types';
-import { DataProvider, useData } from './context/DataContext';
+import React, { useState, useEffect } from 'react';
+import { User } from 'firebase/auth';
+import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
+
+import { DataProvider } from './context/DataContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { CurrencyProvider } from './context/CurrencyContext';
 import { ItineraryProvider } from './context/ItineraryContext';
 import { LocationProvider } from './context/LocationContext';
-import { getContrastColor, hexToRgba } from './utils/colorUtils';
-import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 
 import LoginScreen from './components/LoginScreen';
 import LoadingScreen from './components/LoadingScreen';
-import MainLayout from './components/layout/MainLayout';
-
-const AppContent: React.FC = () => {
-  const { trips, expenses, addTrip, addExpense, deleteTrip, deleteExpense, updateTrip, updateExpense, reorderTrips } = useData();
-  const [currentView, setCurrentView] = useState<AppView>({ type: 'dashboard' });
-  const [activeTrip, setActiveTrip] = useState<Trip | null>(null);
-
-  const selectedTrip = useMemo(() => {
-    if (currentView.type === 'trip' && currentView.tripId) {
-      return trips.find(t => t.id === currentView.tripId) || null;
-    }
-    return activeTrip;
-  }, [currentView, trips, activeTrip]);
-
-  const handleSelectTrip = (tripId: string) => {
-    const trip = trips.find(t => t.id === tripId) || null;
-    setActiveTrip(trip);
-    setCurrentView({ type: 'trip', tripId });
-  };
-
-  const handleBackToDashboard = () => {
-    setCurrentView({ type: 'dashboard' });
-    setActiveTrip(null);
-  };
-
-  const Dashboard = lazy(() => import('./components/Dashboard'));
-  const TripDetail = lazy(() => import('./components/TripDetail'));
-
-  return (
-    <MainLayout>
-      <Suspense fallback={<LoadingScreen />}>
-        {currentView.type === 'dashboard' ? (
-          <Dashboard
-            trips={trips}
-            onSelectTrip={handleSelectTrip}
-            onAddTrip={addTrip}
-            onDeleteTrip={deleteTrip}
-            onUpdateTrip={updateTrip}
-            onReorderTrips={reorderTrips}
-          />
-        ) : (
-          selectedTrip && (
-            <TripDetail
-              trip={selectedTrip}
-              onBack={handleBackToDashboard}
-              expenses={expenses.filter(e => e.tripId === selectedTrip.id)}
-              onAddExpense={(expense: Omit<Expense, 'id'>) => addExpense({ ...expense, id: `exp-${Date.now()}` })}
-              onDeleteExpense={deleteExpense}
-              onUpdateExpense={updateExpense}
-            />
-          )
-        )}
-      </Suspense>
-    </MainLayout>
-  );
-};
+import AppContent from './AppContent'; // Assuming AppContent is extracted to its own file
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const authStateListener = useRef<PluginListenerHandle | null>(null);
-  const idTokenListener = useRef<PluginListenerHandle | null>(null);
 
   useEffect(() => {
-    console.log("[AUTH] useEffect init: Starting auth setup...");
+    const setupAuth = async () => {
+      console.log('[AUTH] App.tsx: Setting up unified auth state management.');
 
-    const setupAuthListeners = async () => {
-      console.log('[AUTH] Setting up native auth listeners...');
-      await authStateListener.current?.remove();
-      await idTokenListener.current?.remove();
-      
-      authStateListener.current = await FirebaseAuthentication.addAuthStateChangeListener(change => {
-        console.log('[AUTH] Auth state changed:', change.user?.uid);
-        setUser(change.user);
+      // Universal listener for auth state changes
+      const authStateHandle = await FirebaseAuthentication.addAuthStateChangeListener(change => {
+        console.log(`[AUTH] App.tsx: Auth state change received. User: ${change.user?.uid}`);
+        setUser(change.user || null);
+        setLoading(false); // Stop loading once we have a definitive auth state
       });
-      
-      idTokenListener.current = await FirebaseAuthentication.addIdTokenChangeListener(token => {
-        console.log('[AUTH] ID token changed event received.');
-        if (!token.token) {
-          setUser(null);
-        }
-      });
-      console.log('[AUTH] Native auth listeners have been set up.');
-    };
 
-    const checkCurrentUser = async () => {
+      // Initial check for the current user
       try {
-        console.log('[AUTH] Checking for current user...');
+        console.log('[AUTH] App.tsx: Checking for initial current user...');
         const result = await FirebaseAuthentication.getCurrentUser();
         if (result.user) {
-          console.log('[AUTH] Found current user:', result.user.uid);
+          console.log(`[AUTH] App.tsx: Found initial user: ${result.user.uid}`);
           setUser(result.user);
         } else {
-          console.log('[AUTH] No user is currently signed in.');
+          console.log('[AUTH] App.tsx: No initial user found.');
           setUser(null);
         }
       } catch (error) {
-        console.error('[AUTH] Error checking current user:', error);
+        console.error('[AUTH] App.tsx: Error getting current user:', error);
         setUser(null);
       } finally {
         setLoading(false);
       }
+
+      return () => {
+        console.log('[AUTH] App.tsx: Cleaning up auth listener.');
+        authStateHandle.remove();
+      };
     };
 
-    const initializeAuth = async () => {
-        await setupAuthListeners();
-        await checkCurrentUser();
-    };
-
-    initializeAuth();
-
-    return () => {
-      console.log('[AUTH] Cleanup: Removing auth listeners.');
-      authStateListener.current?.remove();
-      idTokenListener.current?.remove();
-    };
+    setupAuth();
   }, []);
 
   if (loading) {
